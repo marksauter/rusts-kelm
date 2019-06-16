@@ -60,3 +60,17 @@ export function add_layer<LAYER extends Container<any, any, any, konva.Layer>>(
   init_component(component.stream(), new_layer, child_kelm)
   return new ContainerComponent(component, container)
 }
+
+export function add_node<CHILDNODE extends Node>(
+  container: konva.Layer | konva.Group,
+  ChildNodeClass: new () => CHILDNODE,
+  model_param: CHILDNODE['_ModelParam']
+): Component<CHILDNODE> {
+  let [component, new_node, child_kelm] = create_node(ChildNodeClass, model_param)
+  container.add(component.node())
+  if (typeof new_node.on_add === 'function') {
+    new_node.on_add(container)
+  }
+  init_component(component.stream(), new_node, child_kelm)
+  return component
+}
