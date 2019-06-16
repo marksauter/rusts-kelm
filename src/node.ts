@@ -3,6 +3,7 @@ import { Kelm, Update } from './state'
 
 export interface Node<MODEL = any, MODELPARAM = any, MSG = any, ROOT = any>
   extends Update<MODEL, MODELPARAM, MSG> {
+  _Update: Update<this['_Model'], this['_ModelParam'], this['_Msg']>
   _Root: ROOT
 
   // Method called when the node is added to its parent.
