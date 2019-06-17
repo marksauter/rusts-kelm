@@ -12,6 +12,15 @@ type MsgExpr<UPDATE extends Update, K extends keyof NodeEventMap> = (
   e: konva.KonvaEventObject<NodeEventMap[K]>
 ) => UPDATE['_Msg'] | UPDATE['_Msg']
 
+// Connect component Konva node to event
+export function connect<NODE extends Node, K extends keyof NodeEventMap>(
+  evtStr: K,
+  component: Component<NODE>,
+  msg: MsgExpr<NODE['_Update'], K>
+): void {
+  connect_to_stream(component.node(), evtStr, component.stream(), msg)
+}
+
 // Connect Konva node event to component.
 export function connect_to_component<NODE extends Node, K extends keyof NodeEventMap>(
   node: konva.Node,
