@@ -19,8 +19,8 @@ export function init<NODE extends Node>(
   NodeClass: new () => NODE,
   model_param: NODE['_ModelParam']
 ): Component<NODE> {
-  let [component, new_node, kelm] = create_node<NODE>(NodeClass, model_param)
-  init_component(component.stream(), new_node, kelm)
+  let [component, node, kelm] = create_node<NODE>(NodeClass, model_param)
+  init_component(component.stream(), node, kelm)
   return component
 }
 
@@ -50,14 +50,14 @@ export function add_layer<LAYER extends Container<any, any, any, konva.Layer>>(
   LayerClass: new () => LAYER,
   model_param: LAYER['_ModelParam']
 ): ContainerComponent<LAYER> {
-  let [component, new_layer, child_kelm] = create_node(LayerClass, model_param)
-  let container = new_layer.container()
-  let root = new_layer.root()
+  let [component, layer, layer_kelm] = create_node(LayerClass, model_param)
+  let container = layer.container()
+  let root = layer.root()
   stage.add(root)
-  if (typeof new_layer.on_add === 'function') {
-    new_layer.on_add(stage)
+  if (typeof layer.on_add === 'function') {
+    layer.on_add(layer_kelm, stage)
   }
-  init_component(component.stream(), new_layer, child_kelm)
+  init_component(component.stream(), layer, layer_kelm)
   return new ContainerComponent(component, container)
 }
 
@@ -66,11 +66,11 @@ export function add_node<CHILDNODE extends Node>(
   ChildNodeClass: new () => CHILDNODE,
   model_param: CHILDNODE['_ModelParam']
 ): Component<CHILDNODE> {
-  let [component, new_node, child_kelm] = create_node(ChildNodeClass, model_param)
+  let [component, child, child_kelm] = create_node(ChildNodeClass, model_param)
   container.add(component.node())
-  if (typeof new_node.on_add === 'function') {
-    new_node.on_add(container)
+  if (typeof child.on_add === 'function') {
+    child.on_add(child_kelm, container)
   }
-  init_component(component.stream(), new_node, child_kelm)
+  init_component(component.stream(), child, child_kelm)
   return component
 }

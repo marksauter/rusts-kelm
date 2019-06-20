@@ -7,7 +7,10 @@ export interface Node<MODEL = any, MODELPARAM = any, MSG = any, ROOT = any>
   _Root: ROOT
 
   // Method called when the node is added to its parent.
-  on_add?(_parent: any): void
+  on_add?(
+    _kelm: Kelm<Update<this['_Model'], this['_ModelParam'], this['_Msg']>>,
+    _parent: any
+  ): void
 
   // Get the root layer of the view.
   root(): this['_Root']

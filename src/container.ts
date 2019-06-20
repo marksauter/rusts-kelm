@@ -24,12 +24,12 @@ export class ContainerComponent<NODE extends Container> {
     ChildNodeClass: new () => CHILDNODE,
     model_param: CHILDNODE['_ModelParam']
   ): Component<CHILDNODE> {
-    let [component, new_node, child_kelm] = create_node(ChildNodeClass, model_param)
+    let [component, child, child_kelm] = create_node(ChildNodeClass, model_param)
     this.container.add(component.node())
-    if (typeof new_node.on_add === 'function') {
-      new_node.on_add(this.container)
+    if (typeof child.on_add === 'function') {
+      child.on_add(child_kelm, this.container)
     }
-    init_component(component.stream(), new_node, child_kelm)
+    init_component(component.stream(), child, child_kelm)
     return component
   }
 
