@@ -14,7 +14,7 @@ export type Msg<T, P> = { type: T; payload: P }
 export function connect<NODE extends Node, K extends keyof NodeEventMap>(
   evtStr: K,
   component: Component<NODE>,
-  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => NODE['_Msg']
+  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => NODE['_Msg'] | void
 ): void
 export function connect<NODE extends Node, K extends keyof NodeEventMap>(
   evtStr: K,
@@ -34,7 +34,7 @@ export function connect_to_component<NODE extends Node, K extends keyof NodeEven
   node: konva.Node,
   evtStr: K,
   component: Component<NODE>,
-  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => NODE['_Msg']
+  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => NODE['_Msg'] | void
 ): void
 export function connect_to_component<NODE extends Node, K extends keyof NodeEventMap>(
   node: konva.Node,
@@ -55,7 +55,7 @@ export function connect_to_kelm<UPDATE extends Update, K extends keyof NodeEvent
   node: konva.Node,
   evtStr: K,
   kelm: Kelm<UPDATE>,
-  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg']
+  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
 ): void
 export function connect_to_kelm<UPDATE extends Update, K extends keyof NodeEventMap>(
   node: konva.Node,
@@ -82,7 +82,7 @@ export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
   src_component: Component<SRCNODE>,
   message: SRCNODE['_Msg'] extends Msg<infer T, infer _P> ? T : SRCNODE['_Msg'],
   dst_component: Component<DSTNODE>,
-  msg: (m: SRCNODE['_Msg']) => DSTNODE['_Msg']
+  msg: (m: SRCNODE['_Msg']) => DSTNODE['_Msg'] | void
 ): void
 export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
   src_component: Component<SRCNODE>,
@@ -101,7 +101,7 @@ export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEve
   node: konva.Node,
   evtStr: K,
   stream: flyd.Stream<UPDATE['_Msg']>,
-  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg']
+  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
 ): void
 export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
   node: konva.Node,
@@ -117,7 +117,9 @@ export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEve
 ): void {
   node.on(evtStr, e => {
     let event = typeof msg === 'function' ? msg(e) : msg
-    stream(event)
+    if (event) {
+      stream(event)
+    }
   })
 }
 
@@ -125,7 +127,7 @@ export function connect_streams<SRC extends Update, DST extends Update>(
   src_stream: flyd.Stream<SRC['_Msg']>,
   message: SRC['_Msg'] extends Msg<infer T, infer _P> ? T : SRC['_Msg'],
   dst_stream: flyd.Stream<DST['_Msg']>,
-  msg: (m: SRC['_Msg']) => DST['_Msg']
+  msg: (m: SRC['_Msg']) => DST['_Msg'] | void
 ): void
 export function connect_streams<SRC extends Update, DST extends Update>(
   src_stream: flyd.Stream<SRC['_Msg']>,
@@ -142,7 +144,9 @@ export function connect_streams<SRC extends Update, DST extends Update>(
   flyd.chain((m: SRC['_Msg'] extends Msg<infer T, infer P> ? Msg<T, P> : SRC['_Msg']) => {
     if (m.type === message || (m as SRC['_Msg']) === (message as SRC['_Msg'])) {
       let event = typeof msg === 'function' ? msg(m) : msg
-      return dst_stream(event)
+      if (event) {
+        return dst_stream(event)
+      }
     }
     return dst_stream
   }, src_stream)
