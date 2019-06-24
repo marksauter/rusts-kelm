@@ -32,10 +32,8 @@ export interface Update<MODEL = any, MODELPARAM = any, MSG = any> {
   // Subscriptions are streams that are spawned wen the object is created.
   subscriptions?(kelm: Kelm<Update<this['_Model'], this['_ModelParam'], this['_Msg']>>): void
 
-  // Method called when an event is received from an event.
+  // Method called when a msg is received from an event.
   update(msg: this['_Msg']): void
-  // Return available messages that can be used to modify the model.
-  // messages(update: flyd.flyd.Stream<PatchRequest<MODEL>>): MSG;
 }
 
 export interface UpdateNew<MODEL = any, MODELPARAM = any, MSG = any>
