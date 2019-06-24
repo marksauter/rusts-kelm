@@ -77,24 +77,24 @@ export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
   message: SRCNODE['_Msg'] extends Msg<infer T, infer _P> ? T : SRCNODE['_Msg'],
   dst_component: Component<DSTNODE>,
   msg: DSTNODE['_Msg']
-): void
+): flyd.Stream<DSTNODE['_Msg']>
 export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
   src_component: Component<SRCNODE>,
   message: SRCNODE['_Msg'] extends Msg<infer T, infer _P> ? T : SRCNODE['_Msg'],
   dst_component: Component<DSTNODE>,
   msg: (m: SRCNODE['_Msg']) => DSTNODE['_Msg'] | void
-): void
+): flyd.Stream<DSTNODE['_Msg']>
 export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
   src_component: Component<SRCNODE>,
   message: SRCNODE['_Msg'] extends Msg<infer T, infer _P> ? T : SRCNODE['_Msg'],
   dst_component: Component<DSTNODE>,
   msg: any
-) {
+): flyd.Stream<DSTNODE['_Msg']> {
   // The following function call errors with `message` not assignable to parameter, but I know for
   // sure that they are the same type.
   // See typescript issue: https://github.com/Microsoft/TypeScript/issues/21756
   // @ts-ignore
-  connect_streams(src_component.stream(), message, dst_component.stream(), msg)
+  return connect_streams(src_component.stream(), message, dst_component.stream(), msg)
 }
 
 export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
@@ -128,20 +128,20 @@ export function connect_streams<SRC extends Update, DST extends Update>(
   message: SRC['_Msg'] extends Msg<infer T, infer _P> ? T : SRC['_Msg'],
   dst_stream: flyd.Stream<DST['_Msg']>,
   msg: (m: SRC['_Msg']) => DST['_Msg'] | void
-): void
+): flyd.Stream<DST['_Msg']>
 export function connect_streams<SRC extends Update, DST extends Update>(
   src_stream: flyd.Stream<SRC['_Msg']>,
   message: SRC['_Msg'] extends Msg<infer T, infer _P> ? T : SRC['_Msg'],
   dst_stream: flyd.Stream<DST['_Msg']>,
   msg: DST['_Msg']
-): void
+): flyd.Stream<DST['_Msg']>
 export function connect_streams<SRC extends Update, DST extends Update>(
   src_stream: flyd.Stream<SRC['_Msg']>,
   message: SRC['_Msg'] extends Msg<infer T, infer _P> ? T : SRC['_Msg'],
   dst_stream: flyd.Stream<DST['_Msg']>,
   msg: any
-): void {
-  flyd.chain((m: SRC['_Msg'] extends Msg<infer T, infer P> ? Msg<T, P> : SRC['_Msg']) => {
+): flyd.Stream<DST['_Msg']> {
+  return flyd.chain((m: SRC['_Msg'] extends Msg<infer T, infer P> ? Msg<T, P> : SRC['_Msg']) => {
     if (m.type === message || (m as SRC['_Msg']) === (message as SRC['_Msg'])) {
       let event = typeof msg === 'function' ? msg(m) : msg
       if (event) {
