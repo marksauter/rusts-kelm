@@ -33,7 +33,10 @@ export interface Update<MODEL = any, MODELPARAM = any, MSG = any> {
   subscriptions?(kelm: Kelm<Update<this['_Model'], this['_ModelParam'], this['_Msg']>>): void
 
   // Method called when a msg is received from an event.
-  update(msg: this['_Msg']): void
+  update(
+    kelm: Kelm<Update<this['_Model'], this['_ModelParam'], this['_Msg']>>,
+    msg: this['_Msg']
+  ): void
 }
 
 export interface UpdateNew<MODEL = any, MODELPARAM = any, MSG = any>
@@ -59,20 +62,21 @@ export function execute<UPDATE extends UpdateNew>(
   return stream
 }
 
-export function init_component<UPDATE extends Update>(
-  stream: flyd.Stream<UPDATE['_Msg']>,
-  component: UPDATE,
-  kelm: Kelm<Update<UPDATE['_Model'], UPDATE['_ModelParam'], UPDATE['_Msg']>>
+export function init_component<COMPONENT extends Update>(
+  stream: flyd.Stream<COMPONENT['_Msg']>,
+  component: COMPONENT,
+  kelm: Kelm<Update<COMPONENT['_Model'], COMPONENT['_ModelParam'], COMPONENT['_Msg']>>
 ) {
   if (typeof component.subscriptions === 'function') {
     component.subscriptions(kelm)
   }
-  flyd.chain(event => flyd.stream(update_component(component, event)), stream)
+  flyd.chain(event => flyd.stream(update_component(component, kelm, event)), stream)
 }
 
 export function update_component<COMPONENT extends Update>(
   component: COMPONENT,
+  kelm: Kelm<Update<COMPONENT['_Model'], COMPONENT['_ModelParam'], COMPONENT['_Msg']>>,
   event: COMPONENT['_Msg']
 ) {
-  component.update(event)
+  component.update(kelm, event)
 }
