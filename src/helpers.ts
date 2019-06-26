@@ -31,6 +31,12 @@ export function connect<NODE extends Node, K extends keyof NodeEventMap>(
 
 // Connect Konva node event to component.
 export function connect_to_component<NODE extends Node, K extends keyof NodeEventMap>(
+  node: konva.Stage,
+  evtStr: K,
+  component: Component<NODE>,
+  msg: (e: NodeEventMap[K]) => NODE['_Msg'] | void
+): void
+export function connect_to_component<NODE extends Node, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
   component: Component<NODE>,
@@ -51,6 +57,12 @@ export function connect_to_component<NODE extends Node, K extends keyof NodeEven
   connect_to_stream(node, evtStr, component.stream(), msg)
 }
 // Connect Konva node event to Kelm.
+export function connect_to_kelm<UPDATE extends Update, K extends keyof NodeEventMap>(
+  node: konva.Stage,
+  evtStr: K,
+  kelm: Kelm<UPDATE>,
+  msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
+): void
 export function connect_to_kelm<UPDATE extends Update, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
@@ -98,6 +110,12 @@ export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
 }
 
 export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
+  stage: konva.Stage,
+  evtStr: K,
+  stream: flyd.Stream<UPDATE['_Msg']>,
+  msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
+): void
+export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
   stream: flyd.Stream<UPDATE['_Msg']>,
@@ -115,12 +133,33 @@ export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEve
   stream: flyd.Stream<UPDATE['_Msg']>,
   msg: any
 ): void {
-  node.on(evtStr, e => {
-    let event = typeof msg === 'function' ? msg(e) : msg
-    if (event) {
-      stream(event)
+  if (['keydown', 'keypress', 'keyup'].includes(evtStr as string)) {
+    if (node instanceof konva.Stage) {
+      let container = node.container()
+      container.tabIndex = 1
+      container.focus()
+      container.addEventListener(evtStr as string, e => {
+        let event = typeof msg === 'function' ? msg(e) : msg
+        if (event) {
+          stream(event)
+        }
+      })
+    } else if (document) {
+      document.addEventListener(evtStr as string, e => {
+        let event = typeof msg === 'function' ? msg(e) : msg
+        if (event) {
+          stream(event)
+        }
+      })
     }
-  })
+  } else {
+    node.on(evtStr, e => {
+      let event = typeof msg === 'function' ? msg(e) : msg
+      if (event) {
+        stream(event)
+      }
+    })
+  }
 }
 
 export function connect_streams<SRC extends Update, DST extends Update>(
