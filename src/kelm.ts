@@ -45,31 +45,31 @@ export function timeout<MSG>(stream: flyd.Stream<MSG>, duration: number, constru
   }, duration)
 }
 
-export function add_layer<LAYER extends Container<any, any, any, konva.Layer>>(
-  stage: konva.Stage,
-  LayerClass: new () => LAYER,
-  model_param: LAYER['_ModelParam']
-): ContainerComponent<LAYER> {
-  let [component, layer, layer_kelm] = create_node(LayerClass, model_param)
-  let container = layer.container()
-  let root = layer.root()
-  stage.add(root)
-  if (typeof layer.on_add === 'function') {
-    layer.on_add(layer_kelm, stage)
+export function add_container<CONTAINER extends Container>(
+  konva_container: CONTAINER['_Root'] extends konva.Layer ? konva.Stage : konva.Layer | konva.Group,
+  ContainerClass: new () => CONTAINER,
+  model_param: CONTAINER['_ModelParam']
+): ContainerComponent<CONTAINER> {
+  let [component, child, child_kelm] = create_node(ContainerClass, model_param)
+  let container = child.container()
+  let root = child.root()
+  konva_container.add(root)
+  if (typeof child.on_add === 'function') {
+    child.on_add(child_kelm, konva_container)
   }
-  init_component(component.stream(), layer, layer_kelm)
+  init_component(component.stream(), child, child_kelm)
   return new ContainerComponent(component, container)
 }
 
 export function add_node<CHILDNODE extends Node>(
-  container: konva.Layer | konva.Group,
+  konva_container: CHILDNODE['_Root'] extends konva.Layer ? konva.Stage : konva.Layer | konva.Group,
   ChildNodeClass: new () => CHILDNODE,
   model_param: CHILDNODE['_ModelParam']
 ): Component<CHILDNODE> {
   let [component, child, child_kelm] = create_node(ChildNodeClass, model_param)
-  container.add(component.node())
+  konva_container.add(component.node())
   if (typeof child.on_add === 'function') {
-    child.on_add(child_kelm, container)
+    child.on_add(child_kelm, konva_container)
   }
   init_component(component.stream(), child, child_kelm)
   return component
