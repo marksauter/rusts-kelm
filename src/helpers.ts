@@ -10,79 +10,163 @@ type NodeEventMap = GlobalEventHandlersEventMap & {
 
 export type Msg<T, P> = { type: T; payload: P }
 
-// Connect component Konva node to event
-export function connect<NODE extends Node, K extends keyof NodeEventMap>(
-  evtStr: K,
+// Connect component's Konva node to event. Returns function that when called will disconnect the
+// component from the event.
+export function connect<
+  NODE extends Node,
+  K extends keyof NodeEventMap & ('keydown' | 'keypress' | 'keyup')
+>(
   component: Component<NODE>,
+  evtStr: K,
+  msg: (e: NodeEventMap[K]) => NODE['_Msg'] | void
+): () => void
+export function connect<NODE extends Node, K extends keyof NodeEventMap>(
+  component: Component<NODE>,
+  evtStr: K,
   msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => NODE['_Msg'] | void
-): void
+): () => void
 export function connect<NODE extends Node, K extends keyof NodeEventMap>(
-  evtStr: K,
   component: Component<NODE>,
+  evtStr: K,
   msg: NODE['_Msg']
-): void
+): () => void
 export function connect<NODE extends Node, K extends keyof NodeEventMap>(
-  evtStr: K,
   component: Component<NODE>,
+  evtStr: K,
   msg: any
-): void {
-  connect_to_stream(component.node(), evtStr, component.stream(), msg)
+): () => void {
+  return connect_to_stream(component.node(), evtStr, component.stream(), msg)
 }
 
-// Connect Konva node event to component.
-export function connect_to_component<NODE extends Node, K extends keyof NodeEventMap>(
-  node: konva.Stage,
+// Connect Konva node event to component. Returns function that when called will disconnect the
+// component from the event.
+export function connect_to_component<
+  NODE extends Node,
+  K extends keyof NodeEventMap & ('keydown' | 'keypress' | 'keyup')
+>(
+  node: konva.Node,
   evtStr: K,
   component: Component<NODE>,
   msg: (e: NodeEventMap[K]) => NODE['_Msg'] | void
-): void
+): () => void
 export function connect_to_component<NODE extends Node, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
   component: Component<NODE>,
   msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => NODE['_Msg'] | void
-): void
+): () => void
 export function connect_to_component<NODE extends Node, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
   component: Component<NODE>,
   msg: NODE['_Msg']
-): void
+): () => void
 export function connect_to_component<NODE extends Node, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
   component: Component<NODE>,
   msg: any
-): void {
-  connect_to_stream(node, evtStr, component.stream(), msg)
+): () => void {
+  return connect_to_stream(node, evtStr, component.stream(), msg)
 }
-// Connect Konva node event to Kelm.
-export function connect_to_kelm<UPDATE extends Update, K extends keyof NodeEventMap>(
-  node: konva.Stage,
+// Connect Konva node event to Kelm. Returns function that when called will disconnect the
+// Kelm stream from the event.
+export function connect_to_kelm<
+  UPDATE extends Update,
+  K extends keyof NodeEventMap & ('keydown' | 'keypress' | 'keyup')
+>(
+  node: konva.Node,
   evtStr: K,
   kelm: Kelm<UPDATE>,
   msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
-): void
+): () => void
 export function connect_to_kelm<UPDATE extends Update, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
   kelm: Kelm<UPDATE>,
   msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
-): void
+): () => void
 export function connect_to_kelm<UPDATE extends Update, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
   kelm: Kelm<UPDATE>,
   msg: UPDATE['_Msg']
-): void
+): () => void
 export function connect_to_kelm<UPDATE extends Update, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
   kelm: Kelm<UPDATE>,
   msg: any
-): void {
-  connect_to_stream(node, evtStr, kelm.stream(), msg)
+): () => void {
+  return connect_to_stream(node, evtStr, kelm.stream(), msg)
 }
+
+// Connect Konva node event to stream. Returns function that when called will disconnect the
+// stream from the event.
+export function connect_to_stream<
+  UPDATE extends Update,
+  K extends keyof NodeEventMap & ('keydown' | 'keypress' | 'keyup')
+>(
+  node: konva.Node,
+  evtStr: K,
+  stream: flyd.Stream<UPDATE['_Msg']>,
+  msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
+): () => void
+export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
+  node: konva.Node,
+  evtStr: K,
+  stream: flyd.Stream<UPDATE['_Msg']>,
+  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
+): () => void
+export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
+  node: konva.Node,
+  evtStr: K,
+  stream: flyd.Stream<UPDATE['_Msg']>,
+  msg: UPDATE['_Msg']
+): () => void
+export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
+  node: konva.Node,
+  evtStr: K,
+  stream: flyd.Stream<UPDATE['_Msg']>,
+  msg: any
+): () => void {
+  if (['keydown', 'keypress', 'keyup'].includes(evtStr as string)) {
+    if (node instanceof konva.Stage) {
+      let container = node.container()
+      container.tabIndex = 1
+      container.focus()
+      let listener: EventListener = e => {
+        let event = typeof msg === 'function' ? msg(e) : msg
+        if (event) {
+          stream(event)
+        }
+      }
+      container.addEventListener(evtStr as string, listener)
+      return () => container.removeEventListener(evtStr as string, listener)
+    } else if (window) {
+      let listener: EventListener = e => {
+        let event = typeof msg === 'function' ? msg(e) : msg
+        if (event) {
+          stream(event)
+        }
+      }
+      window.addEventListener(evtStr as string, listener)
+      return () => window.removeEventListener(evtStr as string, listener)
+    }
+  } else {
+    node.on(evtStr, e => {
+      let event = typeof msg === 'function' ? msg(e) : msg
+      if (event) {
+        stream(event)
+      }
+    })
+    return () => {
+      node.off(evtStr as string)
+    }
+  }
+  return () => {}
+}
+
 // Connect Component message reception to other Component.
 export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
   src_component: Component<SRCNODE>,
@@ -107,59 +191,6 @@ export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
   // See typescript issue: https://github.com/Microsoft/TypeScript/issues/21756
   // @ts-ignore
   return connect_streams(src_component.stream(), message, dst_component.stream(), msg)
-}
-
-export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
-  stage: konva.Stage,
-  evtStr: K,
-  stream: flyd.Stream<UPDATE['_Msg']>,
-  msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
-): void
-export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
-  node: konva.Node,
-  evtStr: K,
-  stream: flyd.Stream<UPDATE['_Msg']>,
-  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
-): void
-export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
-  node: konva.Node,
-  evtStr: K,
-  stream: flyd.Stream<UPDATE['_Msg']>,
-  msg: UPDATE['_Msg']
-): void
-export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
-  node: konva.Node,
-  evtStr: K,
-  stream: flyd.Stream<UPDATE['_Msg']>,
-  msg: any
-): void {
-  if (['keydown', 'keypress', 'keyup'].includes(evtStr as string)) {
-    if (node instanceof konva.Stage) {
-      let container = node.container()
-      container.tabIndex = 1
-      container.focus()
-      container.addEventListener(evtStr as string, e => {
-        let event = typeof msg === 'function' ? msg(e) : msg
-        if (event) {
-          stream(event)
-        }
-      })
-    } else if (document) {
-      document.addEventListener(evtStr as string, e => {
-        let event = typeof msg === 'function' ? msg(e) : msg
-        if (event) {
-          stream(event)
-        }
-      })
-    }
-  } else {
-    node.on(evtStr, e => {
-      let event = typeof msg === 'function' ? msg(e) : msg
-      if (event) {
-        stream(event)
-      }
-    })
-  }
 }
 
 export function connect_streams<SRC extends Update, DST extends Update>(
