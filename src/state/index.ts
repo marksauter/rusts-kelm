@@ -42,23 +42,24 @@ export interface Update<MODEL = any, MODELPARAM = any, MSG = any> {
 export interface UpdateNew<MODEL = any, MODELPARAM = any, MSG = any>
   extends Update<MODEL, MODELPARAM, MSG> {
   // Create a new component.
-  new (
+  init(
     kelm: Kelm<Update<this['_Model'], this['_ModelParam'], this['_Msg']>>,
     model: this['_Model']
-  ): this
+  ): void
 }
 
 export function execute<UPDATE extends UpdateNew>(
-  update: UPDATE,
+  UpdateClass: new () => UPDATE,
   model_param: UPDATE['_ModelParam']
 ): flyd.Stream<UPDATE['_Msg']> {
+  let update = new UpdateClass()
   let stream: flyd.Stream<UPDATE['_Msg']> = flyd.stream()
 
   let kelm = new Kelm<Update<UPDATE['_Model'], UPDATE['_ModelParam'], UPDATE['_Msg']>>(stream)
   let model = update.model(kelm, model_param)
-  let component = new update(kelm, model)
+  update.init(kelm, model)
 
-  init_component(stream, component, kelm)
+  init_component(stream, update, kelm)
   return stream
 }
 
