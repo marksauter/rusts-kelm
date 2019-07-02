@@ -1,5 +1,5 @@
 import konva from 'konva'
-import flyd from 'flyd'
+import { EventStream } from './core'
 import { Component } from './component'
 import { create_node } from './helpers'
 import { init_component } from './state'
@@ -35,12 +35,12 @@ export class ContainerComponent<NODE extends Container> {
 
   // Emit a message of the node stream.
   emit(msg: NODE['_Msg']) {
-    this.stream()(msg)
+    this.stream().emit(msg)
   }
 
   // Get the event stream of the component.
   // This is used internally by the library.
-  stream(): flyd.Stream<NODE['_Msg']> {
+  stream(): EventStream<NODE['_Msg']> {
     return this.component.stream()
   }
 

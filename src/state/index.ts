@@ -1,4 +1,4 @@
-import flyd from 'flyd'
+import { EventStream } from '../core'
 
 export class Kelm<
   UPDATE extends Update<MODEL, MODELPARAM, MSG>,
@@ -6,13 +6,13 @@ export class Kelm<
   MODELPARAM = UPDATE['_ModelParam'],
   MSG = UPDATE['_Msg']
 > {
-  private _stream: flyd.Stream<UPDATE['_Msg']>
+  private _stream: EventStream<UPDATE['_Msg']>
 
-  constructor(stream: flyd.Stream<UPDATE['_Msg']>) {
+  constructor(stream: EventStream<UPDATE['_Msg']>) {
     this._stream = stream
   }
 
-  stream(): flyd.Stream<UPDATE['_Msg']> {
+  stream(): EventStream<UPDATE['_Msg']> {
     return this._stream
   }
 }
@@ -51,9 +51,9 @@ export interface UpdateNew<MODEL = any, MODELPARAM = any, MSG = any>
 export function execute<UPDATE extends UpdateNew>(
   UpdateClass: new () => UPDATE,
   model_param: UPDATE['_ModelParam']
-): flyd.Stream<UPDATE['_Msg']> {
+): EventStream<UPDATE['_Msg']> {
   let update = new UpdateClass()
-  let stream: flyd.Stream<UPDATE['_Msg']> = flyd.stream()
+  let stream: EventStream<UPDATE['_Msg']> = new EventStream()
 
   let kelm = new Kelm<Update<UPDATE['_Model'], UPDATE['_ModelParam'], UPDATE['_Msg']>>(stream)
   let model = update.model(kelm, model_param)
@@ -64,14 +64,14 @@ export function execute<UPDATE extends UpdateNew>(
 }
 
 export function init_component<COMPONENT extends Update>(
-  stream: flyd.Stream<COMPONENT['_Msg']>,
+  stream: EventStream<COMPONENT['_Msg']>,
   component: COMPONENT,
   kelm: Kelm<Update<COMPONENT['_Model'], COMPONENT['_ModelParam'], COMPONENT['_Msg']>>
 ) {
   if (typeof component.subscriptions === 'function') {
     component.subscriptions(kelm)
   }
-  flyd.chain(event => flyd.stream(update_component(component, kelm, event)), stream)
+  stream.set_callback(event => update_component(component, kelm, event))
 }
 
 export function update_component<COMPONENT extends Update>(

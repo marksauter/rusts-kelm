@@ -2,13 +2,14 @@
 // import "core-js/fn/array.find"
 // ...
 import konva from 'konva'
-import flyd from 'flyd'
+import { EventStream } from './core'
 import { init_component } from './state'
 import { Component } from './component'
 import { Container, ContainerComponent } from './container'
 import { create_node } from './helpers'
 import { Node } from './node'
 
+export * from './core'
 export * from './state'
 export * from './component'
 export * from './container'
@@ -31,17 +32,17 @@ export function run<NODE extends Node>(
   let _component = init<NODE>(NodeClass, model_param)
 }
 
-export function interval<MSG>(stream: flyd.Stream<MSG>, duration: number, constructor: () => MSG) {
+export function interval<MSG>(stream: EventStream<MSG>, duration: number, constructor: () => MSG) {
   setInterval(() => {
     let msg = constructor()
-    stream(msg)
+    stream.emit(msg)
   }, duration)
 }
 
-export function timeout<MSG>(stream: flyd.Stream<MSG>, duration: number, constructor: () => MSG) {
+export function timeout<MSG>(stream: EventStream<MSG>, duration: number, constructor: () => MSG) {
   setTimeout(() => {
     let msg = constructor()
-    stream(msg)
+    stream.emit(msg)
   }, duration)
 }
 

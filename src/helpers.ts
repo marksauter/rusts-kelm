@@ -1,5 +1,5 @@
 import konva from 'konva'
-import flyd from 'flyd'
+import { EventStream } from './core'
 import { Kelm, Update } from './state'
 import { Component } from './component'
 import { Node } from './node'
@@ -109,25 +109,25 @@ export function connect_to_stream<
 >(
   node: konva.Node,
   evtStr: K,
-  stream: flyd.Stream<UPDATE['_Msg']>,
+  stream: EventStream<UPDATE['_Msg']>,
   msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
 ): () => void
 export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
-  stream: flyd.Stream<UPDATE['_Msg']>,
+  stream: EventStream<UPDATE['_Msg']>,
   msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
 ): () => void
 export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
-  stream: flyd.Stream<UPDATE['_Msg']>,
+  stream: EventStream<UPDATE['_Msg']>,
   msg: UPDATE['_Msg']
 ): () => void
 export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEventMap>(
   node: konva.Node,
   evtStr: K,
-  stream: flyd.Stream<UPDATE['_Msg']>,
+  stream: EventStream<UPDATE['_Msg']>,
   msg: any
 ): () => void {
   if (['keydown', 'keypress', 'keyup'].includes(evtStr as string)) {
@@ -138,7 +138,7 @@ export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEve
       let listener: EventListener = e => {
         let event = typeof msg === 'function' ? msg(e) : msg
         if (event) {
-          stream(event)
+          stream.emit(event)
         }
       }
       container.addEventListener(evtStr as string, listener)
@@ -147,7 +147,7 @@ export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEve
       let listener: EventListener = e => {
         let event = typeof msg === 'function' ? msg(e) : msg
         if (event) {
-          stream(event)
+          stream.emit(event)
         }
       }
       window.addEventListener(evtStr as string, listener)
@@ -157,7 +157,7 @@ export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEve
     node.on(evtStr, e => {
       let event = typeof msg === 'function' ? msg(e) : msg
       if (event) {
-        stream(event)
+        stream.emit(event)
       }
     })
     return () => {
@@ -173,19 +173,19 @@ export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
   message: SRCNODE['_Msg'] extends Msg<infer T, infer _P> ? T : SRCNODE['_Msg'],
   dst_component: Component<DSTNODE>,
   msg: DSTNODE['_Msg']
-): flyd.Stream<DSTNODE['_Msg']>
+): () => void
 export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
   src_component: Component<SRCNODE>,
   message: SRCNODE['_Msg'] extends Msg<infer T, infer _P> ? T : SRCNODE['_Msg'],
   dst_component: Component<DSTNODE>,
   msg: (m: SRCNODE['_Msg']) => DSTNODE['_Msg'] | void
-): flyd.Stream<DSTNODE['_Msg']>
+): () => void
 export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
   src_component: Component<SRCNODE>,
   message: SRCNODE['_Msg'] extends Msg<infer T, infer _P> ? T : SRCNODE['_Msg'],
   dst_component: Component<DSTNODE>,
   msg: any
-): flyd.Stream<DSTNODE['_Msg']> {
+): () => void {
   // The following function call errors with `message` not assignable to parameter, but I know for
   // sure that they are the same type.
   // See typescript issue: https://github.com/Microsoft/TypeScript/issues/21756
@@ -194,32 +194,36 @@ export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
 }
 
 export function connect_streams<SRC extends Update, DST extends Update>(
-  src_stream: flyd.Stream<SRC['_Msg']>,
+  src_stream: EventStream<SRC['_Msg']>,
   message: SRC['_Msg'] extends Msg<infer T, infer _P> ? T : SRC['_Msg'],
-  dst_stream: flyd.Stream<DST['_Msg']>,
+  dst_stream: EventStream<DST['_Msg']>,
   msg: (m: SRC['_Msg']) => DST['_Msg'] | void
-): flyd.Stream<DST['_Msg']>
+): () => void
 export function connect_streams<SRC extends Update, DST extends Update>(
-  src_stream: flyd.Stream<SRC['_Msg']>,
+  src_stream: EventStream<SRC['_Msg']>,
   message: SRC['_Msg'] extends Msg<infer T, infer _P> ? T : SRC['_Msg'],
-  dst_stream: flyd.Stream<DST['_Msg']>,
+  dst_stream: EventStream<DST['_Msg']>,
   msg: DST['_Msg']
-): flyd.Stream<DST['_Msg']>
+): () => void
 export function connect_streams<SRC extends Update, DST extends Update>(
-  src_stream: flyd.Stream<SRC['_Msg']>,
+  src_stream: EventStream<SRC['_Msg']>,
   message: SRC['_Msg'] extends Msg<infer T, infer _P> ? T : SRC['_Msg'],
-  dst_stream: flyd.Stream<DST['_Msg']>,
+  dst_stream: EventStream<DST['_Msg']>,
   msg: any
-): flyd.Stream<DST['_Msg']> {
-  return flyd.chain((m: SRC['_Msg'] extends Msg<infer T, infer P> ? Msg<T, P> : SRC['_Msg']) => {
-    if (m.type === message || (m as SRC['_Msg']) === (message as SRC['_Msg'])) {
-      let event = typeof msg === 'function' ? msg(m) : msg
-      if (event) {
-        return dst_stream(event)
+): () => void {
+  let index = src_stream.observe(
+    (m: SRC['_Msg'] extends Msg<infer T, infer P> ? Msg<T, P> : SRC['_Msg']) => {
+      if (m.type === message || (m as SRC['_Msg']) === (message as SRC['_Msg'])) {
+        let event = typeof msg === 'function' ? msg(m) : msg
+        if (event) {
+          dst_stream.emit(event)
+        }
       }
     }
-    return dst_stream
-  }, src_stream)
+  )
+  return () => {
+    src_stream.ignore(index)
+  }
 }
 
 export function create_node<NODE extends Node>(
@@ -227,7 +231,7 @@ export function create_node<NODE extends Node>(
   model_param: NODE['_ModelParam']
 ): [Component<NODE>, NODE, Kelm<Update<NODE['_Model'], NODE['_ModelParam'], NODE['_Msg']>>] {
   let node = new NodeClass()
-  let stream: flyd.Stream<NODE['_Msg']> = flyd.stream()
+  let stream: EventStream<NODE['_Msg']> = new EventStream()
 
   let kelm = new Kelm<Update<NODE['_Model'], NODE['_ModelParam'], NODE['_Msg']>>(stream)
   let model = node.model(kelm, model_param)
