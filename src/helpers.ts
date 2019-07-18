@@ -130,7 +130,7 @@ export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEve
   stream: EventStream<UPDATE['_Msg']>,
   msg: any
 ): () => void {
-  if (['keydown', 'keypress', 'keyup'].includes(evtStr as string)) {
+  if (['keydown', 'keyup'].includes(evtStr as string)) {
     if (node instanceof konva.Stage) {
       let container = node.container()
       container.tabIndex = 1
@@ -143,15 +143,21 @@ export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEve
       }
       container.addEventListener(evtStr as string, listener)
       return () => container.removeEventListener(evtStr as string, listener)
-    } else if (window) {
+    } else if (document) {
       let listener: EventListener = e => {
         let event = typeof msg === 'function' ? msg(e) : msg
         if (event) {
           stream.emit(event)
         }
       }
-      window.addEventListener(evtStr as string, listener)
-      return () => window.removeEventListener(evtStr as string, listener)
+      document.addEventListener(evtStr as string, listener)
+      return () => {
+        let executed = false
+        if (!executed) {
+          executed = true
+          document.removeEventListener(evtStr as string, listener)
+        }
+      }
     }
   } else {
     node.on(evtStr, e => {
@@ -161,7 +167,11 @@ export function connect_to_stream<UPDATE extends Update, K extends keyof NodeEve
       }
     })
     return () => {
-      node.off(evtStr as string)
+      let executed = false
+      if (!executed) {
+        executed = true
+        node.off(evtStr as string)
+      }
     }
   }
   return () => {}
@@ -211,18 +221,21 @@ export function connect_streams<SRC extends Update, DST extends Update>(
   dst_stream: EventStream<DST['_Msg']>,
   msg: any
 ): () => void {
-  let index = src_stream.observe(
-    (m: SRC['_Msg'] extends Msg<infer T, infer P> ? Msg<T, P> : SRC['_Msg']) => {
-      if (m.type === message || (m as SRC['_Msg']) === (message as SRC['_Msg'])) {
-        let event = typeof msg === 'function' ? msg(m) : msg
-        if (event) {
-          dst_stream.emit(event)
-        }
+  const callback = (m: SRC['_Msg'] extends Msg<infer T, infer P> ? Msg<T, P> : SRC['_Msg']) => {
+    if (m.type === message || (m as SRC['_Msg']) === (message as SRC['_Msg'])) {
+      let event = typeof msg === 'function' ? msg(m) : msg
+      if (event) {
+        dst_stream.emit(event)
       }
     }
-  )
+  }
+  src_stream.observe(callback)
   return () => {
-    src_stream.ignore(index)
+    let executed = false
+    if (!executed) {
+      executed = true
+      src_stream.ignore(callback)
+    }
   }
 }
 
