@@ -13,29 +13,36 @@ export type Msg<T, P> = { type: T; payload: P }
 // Connect component's Konva node to event. Returns function that when called will disconnect the
 // component from the event.
 export function connect<
-  NODE extends Node,
+  KONVANODE extends konva.Node,
+  UPDATE extends Update,
   K extends keyof NodeEventMap & ('keydown' | 'keypress' | 'keyup')
 >(
-  component: Component<NODE>,
+  kelm: Kelm<UPDATE>,
+  node: KONVANODE,
   evtStr: K,
-  msg: (e: NodeEventMap[K]) => NODE['_Msg'] | void
+  msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
 ): () => void
-export function connect<NODE extends Node, K extends keyof NodeEventMap>(
-  component: Component<NODE>,
+export function connect<
+  KONVANODE extends konva.Node,
+  UPDATE extends Update,
+  K extends keyof NodeEventMap
+>(
+  kelm: Kelm<UPDATE>,
+  node: KONVANODE,
   evtStr: K,
-  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => NODE['_Msg'] | void
+  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
 ): () => void
-export function connect<NODE extends Node, K extends keyof NodeEventMap>(
-  component: Component<NODE>,
-  evtStr: K,
-  msg: NODE['_Msg']
-): () => void
-export function connect<NODE extends Node, K extends keyof NodeEventMap>(
-  component: Component<NODE>,
-  evtStr: K,
-  msg: any
-): () => void {
-  return connect_to_stream(component.node(), evtStr, component.stream(), msg)
+export function connect<
+  KONVANODE extends konva.Node,
+  UPDATE extends Update,
+  K extends keyof NodeEventMap
+>(kelm: Kelm<UPDATE>, node: KONVANODE, evtStr: K, msg: UPDATE['_Msg']): () => void
+export function connect<
+  KONVANODE extends konva.Node,
+  UPDATE extends Update,
+  K extends keyof NodeEventMap
+>(kelm: Kelm<UPDATE>, node: KONVANODE, evtStr: K, msg: any): () => void {
+  return connect_to_stream(node, evtStr, kelm.stream(), msg)
 }
 
 // Connect Konva node event to component. Returns function that when called will disconnect the
