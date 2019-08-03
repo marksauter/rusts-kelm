@@ -1,4 +1,3 @@
-import konva from 'konva'
 import { EventStream } from './core'
 import { Node } from './node'
 
@@ -21,9 +20,5 @@ export class Component<NODE extends Node> {
 
   node(): NODE['_Root'] {
     return this._node
-  }
-
-  remove_node(): NODE['_Root'] {
-    return this.node().remove()
   }
 }

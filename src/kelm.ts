@@ -1,11 +1,10 @@
 // Import here Polyfills if needed. Recommended core-js (npm i -D core-js)
 // import "core-js/fn/array.find"
 // ...
-import konva from 'konva'
 import { EventStream } from './core'
 import { init_component } from './state'
 import { Component } from './component'
-import { Container, ContainerComponent } from './container'
+import { IContainer, Container, ContainerComponent } from './container'
 import { create_node } from './helpers'
 import { Node } from './node'
 
@@ -46,8 +45,8 @@ export function timeout<MSG>(stream: EventStream<MSG>, duration: number, constru
   }, duration)
 }
 
-export function add_container<CONTAINER extends Container>(
-  konva_container: CONTAINER['_Root'] extends konva.Layer ? konva.Stage : konva.Layer | konva.Group,
+export function add_container<KONVACONTAINER extends IContainer, CONTAINER extends Container>(
+  konva_container: KONVACONTAINER,
   ContainerClass: new () => CONTAINER,
   model_param: CONTAINER['_ModelParam']
 ): ContainerComponent<CONTAINER> {
@@ -59,11 +58,11 @@ export function add_container<CONTAINER extends Container>(
     child.on_add(child_kelm, konva_container)
   }
   init_component(component.stream(), child, child_kelm)
-  return new ContainerComponent(component, container)
+  return new ContainerComponent<CONTAINER>(component, container)
 }
 
-export function add_node<CHILDNODE extends Node>(
-  konva_container: CHILDNODE['_Root'] extends konva.Layer ? konva.Stage : konva.Layer | konva.Group,
+export function add_node<KONVACONTAINER extends IContainer, CHILDNODE extends Node>(
+  konva_container: KONVACONTAINER,
   ChildNodeClass: new () => CHILDNODE,
   model_param: CHILDNODE['_ModelParam']
 ): Component<CHILDNODE> {

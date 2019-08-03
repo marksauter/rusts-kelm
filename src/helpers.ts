@@ -2,55 +2,51 @@ import konva from 'konva'
 import { EventStream } from './core'
 import { Kelm, Update } from './state'
 import { Component } from './component'
-import { Node } from './node'
-
-type NodeEventMap = GlobalEventHandlersEventMap & {
-  [index: string]: any
-}
+import { INode, Node, NodeEventMap } from './node'
 
 export type Msg<T, P> = { type: T; payload: P }
 
 // Connect component's Konva node to event. Returns function that when called will disconnect the
 // component from the event.
 export function connect<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
-  K extends keyof NodeEventMap & ('keydown' | 'keypress' | 'keyup')
+  K extends keyof NodeEventMap & ('keydown' | 'keyup')
 >(
-  kelm: Kelm<UPDATE>,
+  kelm: Kelm<UPDATE['_Msg']>,
   node: KONVANODE,
   evtStr: K,
   msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
 ): () => void
 export function connect<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
   K extends keyof NodeEventMap
 >(
-  kelm: Kelm<UPDATE>,
+  kelm: Kelm<UPDATE['_Msg']>,
   node: KONVANODE,
   evtStr: K,
   msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
 ): () => void
 export function connect<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
   K extends keyof NodeEventMap
->(kelm: Kelm<UPDATE>, node: KONVANODE, evtStr: K, msg: UPDATE['_Msg']): () => void
+>(kelm: Kelm<UPDATE['_Msg']>, node: KONVANODE, evtStr: K, msg: UPDATE['_Msg']): () => void
 export function connect<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
   K extends keyof NodeEventMap
->(kelm: Kelm<UPDATE>, node: KONVANODE, evtStr: K, msg: any): () => void {
+>(kelm: Kelm<UPDATE['_Msg']>, node: KONVANODE, evtStr: K, msg: any): () => void {
   return connect_to_stream(node, evtStr, kelm.stream(), msg)
 }
 
 // Connect Konva node event to component. Returns function that when called will disconnect the
 // component from the event.
 export function connect_to_component<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   NODE extends Node,
-  K extends keyof NodeEventMap & ('keydown' | 'keypress' | 'keyup')
+  K extends keyof NodeEventMap & ('keydown' | 'keyup')
 >(
   node: KONVANODE,
   evtStr: K,
@@ -58,7 +54,7 @@ export function connect_to_component<
   msg: (e: NodeEventMap[K]) => NODE['_Msg'] | void
 ): () => void
 export function connect_to_component<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   NODE extends Node,
   K extends keyof NodeEventMap
 >(
@@ -68,12 +64,12 @@ export function connect_to_component<
   msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => NODE['_Msg'] | void
 ): () => void
 export function connect_to_component<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   NODE extends Node,
   K extends keyof NodeEventMap
 >(node: KONVANODE, evtStr: K, component: Component<NODE>, msg: NODE['_Msg']): () => void
 export function connect_to_component<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   NODE extends Node,
   K extends keyof NodeEventMap
 >(node: KONVANODE, evtStr: K, component: Component<NODE>, msg: any): () => void {
@@ -82,44 +78,44 @@ export function connect_to_component<
 // Connect Konva node event to Kelm. Returns function that when called will disconnect the
 // Kelm stream from the event.
 export function connect_to_kelm<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
-  K extends keyof NodeEventMap & ('keydown' | 'keypress' | 'keyup')
+  K extends keyof NodeEventMap & ('keydown' | 'keyup')
 >(
   node: KONVANODE,
   evtStr: K,
-  kelm: Kelm<UPDATE>,
+  kelm: Kelm<UPDATE['_Msg']>,
   msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
 ): () => void
 export function connect_to_kelm<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
   K extends keyof NodeEventMap
 >(
   node: KONVANODE,
   evtStr: K,
-  kelm: Kelm<UPDATE>,
+  kelm: Kelm<UPDATE['_Msg']>,
   msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
 ): () => void
 export function connect_to_kelm<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
   K extends keyof NodeEventMap
->(node: KONVANODE, evtStr: K, kelm: Kelm<UPDATE>, msg: UPDATE['_Msg']): () => void
+>(node: KONVANODE, evtStr: K, kelm: Kelm<UPDATE['_Msg']>, msg: UPDATE['_Msg']): () => void
 export function connect_to_kelm<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
   K extends keyof NodeEventMap
->(node: KONVANODE, evtStr: K, kelm: Kelm<UPDATE>, msg: any): () => void {
+>(node: KONVANODE, evtStr: K, kelm: Kelm<UPDATE['_Msg']>, msg: any): () => void {
   return connect_to_stream(node, evtStr, kelm.stream(), msg)
 }
 
 // Connect Konva node event to stream. Returns function that when called will disconnect the
 // stream from the event.
 export function connect_to_stream<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
-  K extends keyof NodeEventMap & ('keydown' | 'keypress' | 'keyup')
+  K extends keyof NodeEventMap & ('keydown' | 'keyup')
 >(
   node: KONVANODE,
   evtStr: K,
@@ -127,7 +123,7 @@ export function connect_to_stream<
   msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
 ): () => void
 export function connect_to_stream<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
   K extends keyof NodeEventMap
 >(
@@ -137,12 +133,12 @@ export function connect_to_stream<
   msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
 ): () => void
 export function connect_to_stream<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
   K extends keyof NodeEventMap
 >(node: KONVANODE, evtStr: K, stream: EventStream<UPDATE['_Msg']>, msg: UPDATE['_Msg']): () => void
 export function connect_to_stream<
-  KONVANODE extends konva.Node,
+  KONVANODE extends INode,
   UPDATE extends Update,
   K extends keyof NodeEventMap
 >(node: KONVANODE, evtStr: K, stream: EventStream<UPDATE['_Msg']>, msg: any): () => void {
@@ -258,11 +254,11 @@ export function connect_streams<SRC extends Update, DST extends Update>(
 export function create_node<NODE extends Node>(
   NodeClass: new () => NODE,
   model_param: NODE['_ModelParam']
-): [Component<NODE>, NODE, Kelm<Update<NODE['_Model'], NODE['_ModelParam'], NODE['_Msg']>>] {
+): [Component<NODE>, NODE, Kelm<NODE['_Msg']>] {
   let node = new NodeClass()
   let stream: EventStream<NODE['_Msg']> = new EventStream()
 
-  let kelm = new Kelm<Update<NODE['_Model'], NODE['_ModelParam'], NODE['_Msg']>>(stream)
+  let kelm = new Kelm<NODE['_Msg']>(stream)
   let model = node.model(kelm, model_param)
   node.view(kelm, model)
 
