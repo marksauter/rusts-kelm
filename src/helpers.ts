@@ -2,267 +2,308 @@ import konva from 'konva'
 import { EventStream } from './core'
 import { Kelm, Update } from './state'
 import { Component } from './component'
-import { INode, Node, NodeEventMap } from './node'
+import { Container, ContainerComponent } from './container'
+import { Widget, WidgetBase, WidgetRoot, NodeEventMap } from './widget'
 
 export type Msg<T, P> = { type: T; payload: P }
+export function isMsg(m: any): m is Msg<any, any> {
+  return 'type' in m && 'payload' in m
+}
 
-// Connect component's Konva node to event. Returns function that when called will disconnect the
-// component from the event.
-export function connect<
-  KONVANODE extends INode,
-  UPDATE extends Update,
-  K extends keyof NodeEventMap & ('keydown' | 'keyup')
->(
-  kelm: Kelm<UPDATE['_Msg']>,
-  node: KONVANODE,
-  evtStr: K,
-  msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
-): () => void
-export function connect<
-  KONVANODE extends INode,
-  UPDATE extends Update,
-  K extends keyof NodeEventMap
->(
-  kelm: Kelm<UPDATE['_Msg']>,
-  node: KONVANODE,
-  evtStr: K,
-  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
-): () => void
-export function connect<
-  KONVANODE extends INode,
-  UPDATE extends Update,
-  K extends keyof NodeEventMap
->(kelm: Kelm<UPDATE['_Msg']>, node: KONVANODE, evtStr: K, msg: UPDATE['_Msg']): () => void
-export function connect<
-  KONVANODE extends INode,
-  UPDATE extends Update,
-  K extends keyof NodeEventMap
->(kelm: Kelm<UPDATE['_Msg']>, node: KONVANODE, evtStr: K, msg: any): () => void {
-  return connect_to_stream(node, evtStr, kelm.stream(), msg)
+export type MsgFn<T, P> = (payload: P) => Msg<T, P>
+
+class EchoMsg<T, P> {
+  private f: MsgFn<T, P>
+  constructor(f: MsgFn<T, P>) {
+    this.f = f
+  }
+  call(payload: P) {
+    this.f(payload)
+  }
+}
+
+export function echo<T, P>(f: MsgFn<T, P>) {
+  return new EchoMsg<T, P>(f)
 }
 
 // Connect Konva node event to component. Returns function that when called will disconnect the
 // component from the event.
 export function connect_to_component<
-  KONVANODE extends INode,
-  NODE extends Node,
-  K extends keyof NodeEventMap & ('keydown' | 'keyup')
->(
-  node: KONVANODE,
-  evtStr: K,
-  component: Component<NODE>,
-  msg: (e: NodeEventMap[K]) => NODE['_Msg'] | void
-): () => void
-export function connect_to_component<
-  KONVANODE extends INode,
-  NODE extends Node,
+  NODE extends WidgetRoot,
+  WIDGET extends Widget,
+  CONTAINER extends Container,
   K extends keyof NodeEventMap
 >(
-  node: KONVANODE,
-  evtStr: K,
-  component: Component<NODE>,
-  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => NODE['_Msg'] | void
-): () => void
+  node: NODE,
+  evt_str: K,
+  component: Component<WIDGET> | ContainerComponent<CONTAINER>,
+  msg: (e: NodeEventMap[K]) => WIDGET['_Msg'] | void
+): void
 export function connect_to_component<
-  KONVANODE extends INode,
-  NODE extends Node,
+  NODE extends WidgetRoot,
+  WIDGET extends Widget,
+  CONTAINER extends Container,
   K extends keyof NodeEventMap
->(node: KONVANODE, evtStr: K, component: Component<NODE>, msg: NODE['_Msg']): () => void
+>(
+  node: NODE,
+  evt_str: K,
+  component: Component<WIDGET> | ContainerComponent<CONTAINER>,
+  msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => WIDGET['_Msg'] | void
+): void
 export function connect_to_component<
-  KONVANODE extends INode,
-  NODE extends Node,
+  NODE extends WidgetRoot,
+  WIDGET extends Widget,
+  CONTAINER extends Container,
   K extends keyof NodeEventMap
->(node: KONVANODE, evtStr: K, component: Component<NODE>, msg: any): () => void {
-  return connect_to_stream(node, evtStr, component.stream(), msg)
+>(
+  node: NODE,
+  evt_str: K,
+  component: Component<WIDGET> | ContainerComponent<CONTAINER>,
+  msg: () => WIDGET['_Msg']
+): void
+export function connect_to_component<
+  NODE extends WidgetRoot,
+  WIDGET extends Widget,
+  CONTAINER extends Container,
+  K extends keyof NodeEventMap
+>(
+  node: NODE,
+  evt_str: K,
+  component: Component<WIDGET> | ContainerComponent<CONTAINER>,
+  msg: WIDGET['_Msg']
+): void
+export function connect_to_component<
+  NODE extends WidgetRoot,
+  WIDGET extends Widget,
+  CONTAINER extends Container,
+  K extends keyof NodeEventMap
+>(
+  node: NODE,
+  evt_str: K,
+  component: Component<WIDGET> | ContainerComponent<CONTAINER>,
+  msg: any
+): void {
+  return connect_to_stream(node, evt_str, component.stream(), msg)
 }
-// Connect Konva node event to Kelm. Returns function that when called will disconnect the
-// Kelm stream from the event.
+
+// Connect Konva node event to Kelm message
 export function connect_to_kelm<
-  KONVANODE extends INode,
+  NODE extends WidgetRoot,
   UPDATE extends Update,
-  K extends keyof NodeEventMap & ('keydown' | 'keyup')
+  K extends keyof NodeEventMap
 >(
-  node: KONVANODE,
-  evtStr: K,
+  node: NODE,
+  evt_str: K,
   kelm: Kelm<UPDATE['_Msg']>,
   msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
-): () => void
+): void
 export function connect_to_kelm<
-  KONVANODE extends INode,
+  NODE extends WidgetRoot,
   UPDATE extends Update,
   K extends keyof NodeEventMap
 >(
-  node: KONVANODE,
-  evtStr: K,
+  node: NODE,
+  evt_str: K,
   kelm: Kelm<UPDATE['_Msg']>,
   msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
-): () => void
+): void
 export function connect_to_kelm<
-  KONVANODE extends INode,
+  NODE extends WidgetRoot,
   UPDATE extends Update,
   K extends keyof NodeEventMap
->(node: KONVANODE, evtStr: K, kelm: Kelm<UPDATE['_Msg']>, msg: UPDATE['_Msg']): () => void
+>(node: NODE, evt_str: K, kelm: Kelm<UPDATE['_Msg']>, msg: () => UPDATE['_Msg']): void
 export function connect_to_kelm<
-  KONVANODE extends INode,
+  NODE extends WidgetRoot,
   UPDATE extends Update,
   K extends keyof NodeEventMap
->(node: KONVANODE, evtStr: K, kelm: Kelm<UPDATE['_Msg']>, msg: any): () => void {
-  return connect_to_stream(node, evtStr, kelm.stream(), msg)
+>(node: NODE, evt_str: K, kelm: Kelm<UPDATE['_Msg']>, msg: UPDATE['_Msg']): void
+export function connect_to_kelm<
+  NODE extends WidgetRoot,
+  UPDATE extends Update,
+  K extends keyof NodeEventMap
+>(node: NODE, evt_str: K, kelm: Kelm<UPDATE['_Msg']>, msg: any): void {
+  return connect_to_stream(node, evt_str, kelm.stream(), msg)
 }
+
+export const connect = connect_to_kelm
 
 // Connect Konva node event to stream. Returns function that when called will disconnect the
 // stream from the event.
 export function connect_to_stream<
-  KONVANODE extends INode,
+  NODE extends WidgetRoot,
   UPDATE extends Update,
-  K extends keyof NodeEventMap & ('keydown' | 'keyup')
+  K extends keyof NodeEventMap
 >(
-  node: KONVANODE,
-  evtStr: K,
+  node: NODE,
+  evt_str: K,
   stream: EventStream<UPDATE['_Msg']>,
   msg: (e: NodeEventMap[K]) => UPDATE['_Msg'] | void
-): () => void
+): void
 export function connect_to_stream<
-  KONVANODE extends INode,
+  NODE extends WidgetRoot,
   UPDATE extends Update,
   K extends keyof NodeEventMap
 >(
-  node: KONVANODE,
-  evtStr: K,
+  node: NODE,
+  evt_str: K,
   stream: EventStream<UPDATE['_Msg']>,
   msg: (e: konva.KonvaEventObject<NodeEventMap[K]>) => UPDATE['_Msg'] | void
-): () => void
+): void
 export function connect_to_stream<
-  KONVANODE extends INode,
+  NODE extends WidgetRoot,
   UPDATE extends Update,
   K extends keyof NodeEventMap
->(node: KONVANODE, evtStr: K, stream: EventStream<UPDATE['_Msg']>, msg: UPDATE['_Msg']): () => void
+>(node: NODE, evt_str: K, stream: EventStream<UPDATE['_Msg']>, msg: () => UPDATE['_Msg']): void
 export function connect_to_stream<
-  KONVANODE extends INode,
+  NODE extends WidgetRoot,
   UPDATE extends Update,
   K extends keyof NodeEventMap
->(node: KONVANODE, evtStr: K, stream: EventStream<UPDATE['_Msg']>, msg: any): () => void {
-  if (['keydown', 'keyup'].includes(evtStr as string)) {
-    if (node instanceof konva.Stage) {
-      let container = node.container()
-      container.tabIndex = 1
-      container.focus()
-      let listener: EventListener = e => {
-        let event = typeof msg === 'function' ? msg(e) : msg
-        if (event) {
-          stream.emit(event)
-        }
-      }
-      container.addEventListener(evtStr as string, listener)
-      return () => container.removeEventListener(evtStr as string, listener)
-    } else if (document) {
-      let listener: EventListener = e => {
-        let event = typeof msg === 'function' ? msg(e) : msg
-        if (event) {
-          stream.emit(event)
-        }
-      }
-      document.addEventListener(evtStr as string, listener)
-      return () => {
-        let executed = false
-        if (!executed) {
-          executed = true
-          document.removeEventListener(evtStr as string, listener)
-        }
-      }
+>(node: NODE, evt_str: K, stream: EventStream<UPDATE['_Msg']>, msg: UPDATE['_Msg']): void
+export function connect_to_stream<
+  NODE extends WidgetRoot,
+  UPDATE extends Update,
+  K extends keyof NodeEventMap
+>(node: NODE, evt_str: K, stream: EventStream<UPDATE['_Msg']>, msg: any): void {
+  node.on(evt_str, (e: (typeof msg) extends ((e: infer E) => UPDATE['_Msg'] | void) ? E : any) => {
+    let event = typeof msg === 'function' ? msg(e) : msg
+    if (event) {
+      stream.emit(event)
     }
-  } else {
-    node.on(evtStr, e => {
-      let event = typeof msg === 'function' ? msg(e) : msg
-      if (event) {
-        stream.emit(event)
-      }
-    })
-    return () => {
-      let executed = false
-      if (!executed) {
-        executed = true
-        node.off(evtStr as string)
-      }
-    }
-  }
-  return () => {}
+  })
 }
 
 // Connect Component message reception to other Component.
-export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
-  src_component: Component<SRCNODE>,
-  message: SRCNODE['_Msg'] extends Msg<infer T, infer _P> ? T : SRCNODE['_Msg'],
-  dst_component: Component<DSTNODE>,
-  msg: DSTNODE['_Msg']
-): () => void
-export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
-  src_component: Component<SRCNODE>,
-  message: SRCNODE['_Msg'] extends Msg<infer T, infer _P> ? T : SRCNODE['_Msg'],
-  dst_component: Component<DSTNODE>,
-  msg: (m: SRCNODE['_Msg']) => DSTNODE['_Msg'] | void
-): () => void
-export function connect_components<SRCNODE extends Node, DSTNODE extends Node>(
-  src_component: Component<SRCNODE>,
-  message: SRCNODE['_Msg'] extends Msg<infer T, infer _P> ? T : SRCNODE['_Msg'],
-  dst_component: Component<DSTNODE>,
+export function connect_components<SRCWIDGET extends Widget, DSTWIDGET extends Widget>(
+  src_component: Component<SRCWIDGET>,
+  msg_str: string,
+  dst_component: Component<DSTWIDGET>,
+  msg: DSTWIDGET['_Msg'] extends Msg<infer T, infer P> ? EchoMsg<T, P> : never
+): void
+export function connect_components<SRCWIDGET extends Widget, DSTWIDGET extends Widget>(
+  src_component: Component<SRCWIDGET>,
+  msg_str: string,
+  dst_component: Component<DSTWIDGET>,
+  msg: DSTWIDGET['_Msg']
+): void
+export function connect_components<SRCWIDGET extends Widget, DSTWIDGET extends Widget>(
+  src_component: Component<SRCWIDGET>,
+  msg_str: string,
+  dst_component: Component<DSTWIDGET>,
+  msg: (m: SRCWIDGET['_Msg']) => DSTWIDGET['_Msg'] | void
+): void
+export function connect_components<SRCWIDGET extends Widget, DSTWIDGET extends Widget>(
+  src_component: Component<SRCWIDGET>,
+  msg_str: string,
+  dst_component: Component<DSTWIDGET>,
   msg: any
-): () => void {
-  // The following function call errors with `message` not assignable to parameter, but I know for
-  // sure that they are the same type.
-  // See typescript issue: https://github.com/Microsoft/TypeScript/issues/21756
-  // @ts-ignore
-  return connect_streams(src_component.stream(), message, dst_component.stream(), msg)
+): void {
+  return connect_streams(src_component.stream(), msg_str, dst_component.stream(), msg)
+}
+
+// Connect Kelm message reception to other Kelm.
+export function connect_kelms<SRC extends Update, DST extends Update>(
+  src_kelm: Kelm<SRC['_Msg']>,
+  msg_str: string,
+  dst_kelm: Kelm<DST['_Msg']>,
+  msg: DST['_Msg'] extends Msg<infer T, infer P> ? EchoMsg<T, P> : never
+): void
+export function connect_kelms<SRC extends Update, DST extends Update>(
+  src_kelm: Kelm<SRC['_Msg']>,
+  msg_str: string,
+  dst_kelm: Kelm<DST['_Msg']>,
+  msg: (m: SRC['_Msg']) => DST['_Msg'] | void
+): void
+export function connect_kelms<SRC extends Update, DST extends Update>(
+  src_kelm: Kelm<SRC['_Msg']>,
+  msg_str: string,
+  dst_kelm: Kelm<DST['_Msg']>,
+  msg: DST['_Msg']
+): void
+export function connect_kelms<SRC extends Update, DST extends Update>(
+  src_kelm: Kelm<SRC['_Msg']>,
+  msg_str: string,
+  dst_kelm: Kelm<DST['_Msg']>,
+  msg: any
+): void {
+  return connect_streams(src_kelm.stream(), msg_str, dst_kelm.stream(), msg)
 }
 
 export function connect_streams<SRC extends Update, DST extends Update>(
   src_stream: EventStream<SRC['_Msg']>,
-  message: SRC['_Msg'] extends Msg<infer T, infer _P> ? T : SRC['_Msg'],
+  msg_str: string,
+  dst_stream: EventStream<DST['_Msg']>,
+  msg: DST['_Msg'] extends Msg<infer T, infer P> ? EchoMsg<T, P> : never
+): void
+export function connect_streams<SRC extends Update, DST extends Update>(
+  src_stream: EventStream<SRC['_Msg']>,
+  msg_str: string,
   dst_stream: EventStream<DST['_Msg']>,
   msg: (m: SRC['_Msg']) => DST['_Msg'] | void
-): () => void
+): void
 export function connect_streams<SRC extends Update, DST extends Update>(
   src_stream: EventStream<SRC['_Msg']>,
-  message: SRC['_Msg'] extends Msg<infer T, infer _P> ? T : SRC['_Msg'],
+  msg_str: string,
   dst_stream: EventStream<DST['_Msg']>,
   msg: DST['_Msg']
-): () => void
+): void
 export function connect_streams<SRC extends Update, DST extends Update>(
   src_stream: EventStream<SRC['_Msg']>,
-  message: SRC['_Msg'] extends Msg<infer T, infer _P> ? T : SRC['_Msg'],
+  msg_str: string,
   dst_stream: EventStream<DST['_Msg']>,
   msg: any
-): () => void {
+): void {
+  let messages = (msg_str as string).split(' '),
+    len = messages.length,
+    n,
+    message,
+    parts,
+    base_msgs: string[] = []
+
+  for (n = 0; n < len; n++) {
+    message = messages[n]
+    parts = message.split('.')
+    base_msgs.push(parts[0])
+  }
   const callback = (m: SRC['_Msg'] extends Msg<infer T, infer P> ? Msg<T, P> : SRC['_Msg']) => {
-    if (m.type === message || (m as SRC['_Msg']) === (message as SRC['_Msg'])) {
-      let event = typeof msg === 'function' ? msg(m) : msg
+    let msg_type = isMsg(m) ? m.type : m
+    if (base_msgs.includes(msg_type)) {
+      let _m = isMsg(m) && msg instanceof EchoMsg ? m.payload : m
+      let event = typeof msg === 'function' ? msg(_m) : msg
       if (event) {
         dst_stream.emit(event)
       }
     }
   }
-  src_stream.observe(callback)
-  return () => {
-    let executed = false
-    if (!executed) {
-      executed = true
-      src_stream.ignore(callback)
-    }
-  }
+  src_stream.observe(msg_str, callback)
 }
 
-export function create_node<NODE extends Node>(
-  NodeClass: new () => NODE,
-  model_param: NODE['_ModelParam']
-): [Component<NODE>, NODE, Kelm<NODE['_Msg']>] {
-  let node = new NodeClass()
-  let stream: EventStream<NODE['_Msg']> = new EventStream()
+// Create a new kelm widget with `model_param` as initialization value.
+export function create_widget<WIDGET extends Widget>(
+  WidgetClass: new () => WIDGET,
+  model_param: WIDGET['_ModelParam']
+): [Component<WIDGET>, WIDGET, Kelm<WIDGET['_Msg']>] {
+  let widget = new WidgetClass()
+  let stream: EventStream<WIDGET['_Msg']> = new EventStream()
 
-  let kelm = new Kelm<NODE['_Msg']>(stream)
-  let model = node.model(kelm, model_param)
-  node.view(kelm, model)
+  let kelm = new Kelm<WIDGET['_Msg']>(stream)
+  let model = widget.model(kelm, model_param)
+  widget.view(kelm, model)
 
-  let root = node.root()
-  let component = new Component<NODE>(stream, root)
-  return [component, node, kelm]
+  let root = widget.root()
+  let component = new Component<WIDGET>(stream, root)
+  return [component, widget, kelm]
+}
+
+export function create_widget_base<WIDGET extends Widget, WIDGETBASE extends WidgetBase>(
+  widget: WIDGET,
+  kelm: Kelm<WIDGET['_Msg']>,
+  WidgetBaseClass: new () => WIDGETBASE,
+  model_param: WIDGETBASE['_ModelParam']
+): WIDGETBASE {
+  let base = new WidgetBaseClass()
+
+  let model = base.model(kelm, model_param)
+  base.view(widget, kelm, model)
+
+  return base
 }

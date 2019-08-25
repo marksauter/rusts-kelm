@@ -1,24 +1,24 @@
 import { EventStream } from './core'
-import { Node } from './node'
+import { Widget } from './widget'
 
-export class Component<NODE extends Node> {
-  private _stream: EventStream<NODE['_Msg']>
-  private _node: NODE['_Root']
+export class Component<WIDGET extends Widget> {
+  private _stream: EventStream<WIDGET['_Msg']>
+  private _widget: WIDGET['_Root']
 
-  constructor(stream: EventStream<NODE['_Msg']>, node: NODE['_Root']) {
+  constructor(stream: EventStream<WIDGET['_Msg']>, widget: WIDGET['_Root']) {
     this._stream = stream
-    this._node = node
+    this._widget = widget
   }
 
-  emit(msg: NODE['_Msg']) {
+  emit(msg: WIDGET['_Msg']) {
     this._stream.emit(msg)
   }
 
-  stream(): EventStream<NODE['_Msg']> {
+  stream(): EventStream<WIDGET['_Msg']> {
     return this._stream
   }
 
-  node(): NODE['_Root'] {
-    return this._node
+  widget(): WIDGET['_Root'] {
+    return this._widget
   }
 }

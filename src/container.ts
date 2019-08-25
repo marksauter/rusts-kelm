@@ -1,69 +1,97 @@
+import konva from 'konva'
 import { EventStream } from './core'
 import { Component } from './component'
-import { create_node } from './helpers'
+import { create_widget } from './helpers'
 import { init_component } from './state'
-import { Node } from './node'
+import { Widget, WidgetBase, WidgetRoot } from './widget'
 
-export interface IContainer {
-  add(child: any): void
-}
-
-export class ContainerComponent<
-  NODE extends Container,
-  CONTAINER extends Node<NODE['_Model'], NODE['_ModelParam'], NODE['_Msg'], NODE['_Root']> = NODE
-> {
-  private component: Component<CONTAINER>
-  container: NODE['_Container']
-
-  constructor(component: Component<CONTAINER>, container: NODE['_Container']) {
-    this.component = component
-    this.container = container
-  }
-
-  // // Add a node to a kelm container.
-  add(node: any) {
-    this.container.add(node)
-  }
-
-  // Add a kelm node to a kelm container.
-  add_node<CHILDNODE extends Node>(
-    ChildNodeClass: new () => CHILDNODE,
-    model_param: CHILDNODE['_ModelParam']
-  ): Component<CHILDNODE> {
-    let [component, child, child_kelm] = create_node(ChildNodeClass, model_param)
-    this.container.add(component.node())
-    if (typeof child.on_add === 'function') {
-      child.on_add(child_kelm, this.container)
-    }
-    init_component(component.stream(), child, child_kelm)
-    return component
-  }
-
-  // Emit a message of the node stream.
-  emit(msg: NODE['_Msg']) {
-    this.stream().emit(msg)
-  }
-
-  // Get the event stream of the component.
-  // This is used internally by the library.
-  stream(): EventStream<NODE['_Msg']> {
-    return this.component.stream()
-  }
-
-  // Get the node of the component.
-  node(): NODE['_Root'] {
-    return this.component.node()
-  }
+export interface WidgetContainer<CHILD> extends WidgetRoot {
+  add(child: CHILD): any
 }
 
 export abstract class Container<
   MODEL = any,
   MODELPARAM = any,
   MSG = any,
-  CONTAINER extends IContainer = any
-> extends Node<MODEL, MODELPARAM, MSG, CONTAINER> {
+  CHILD = any,
+  CONTAINER extends WidgetContainer<CHILD> = WidgetContainer<CHILD>,
+  PARENT extends WidgetContainer<CONTAINER> = WidgetContainer<CONTAINER>
+> extends Widget<MODEL, MODELPARAM, MSG, CONTAINER, PARENT> {
   _Container!: CONTAINER
+  _Child!: CHILD
 
-  // Get the containing node, i.e. the node where the children will be added.
+  // Get the containing widget, i.e. the widget where the children will be added.
   abstract container(): this['_Container']
+}
+
+export abstract class ContainerBase<
+  MODEL = any,
+  MODELPARAM = any,
+  MSG = any,
+  CHILD = any,
+  CONTAINER extends WidgetContainer<CHILD> = WidgetContainer<CHILD>,
+  PARENT extends WidgetContainer<CONTAINER> = WidgetContainer<CONTAINER>
+> extends WidgetBase<MODEL, MODELPARAM, MSG, CONTAINER, PARENT> {
+  _Container!: CONTAINER
+  _Child!: CHILD
+
+  // Get the containing widget, i.e. the widget where the children will be added.
+  abstract container(): this['_Container']
+}
+
+export class ContainerComponent<
+  CONTAINER extends Container,
+  WIDGET extends Widget<
+    CONTAINER['_Model'],
+    CONTAINER['_ModelParam'],
+    CONTAINER['_Msg'],
+    CONTAINER['_Root'],
+    CONTAINER['_Parent']
+  > = CONTAINER
+> {
+  private component: Component<WIDGET>
+  container: CONTAINER['_Container']
+  add: CONTAINER['_Container']['add']
+
+  constructor(component: Component<WIDGET>, container: CONTAINER['_Container']) {
+    // Add a method to add a node to the kelm container.
+    this.add = (child: CONTAINER['_Child']) => container.add(child)
+
+    this.component = component
+    this.container = container
+  }
+
+  add_widget<
+    MODEL,
+    MODELPARAM,
+    MSG,
+    ROOT extends CONTAINER['_Child'],
+    CHILDWIDGET extends Widget<MODEL, MODELPARAM, MSG, ROOT, WidgetContainer<ROOT>>
+  >(
+    ChildWidgetClass: new () => CHILDWIDGET,
+    model_param: CHILDWIDGET['_ModelParam']
+  ): Component<CHILDWIDGET> {
+    let [component, child, child_kelm] = create_widget(ChildWidgetClass, model_param)
+    let widget = component.widget()
+    this.add(widget)
+    child.on_add(child_kelm, this.container)
+    init_component(component.stream(), child, child_kelm)
+    return component
+  }
+
+  // Emit a message of the widget stream.
+  emit(msg: CONTAINER['_Msg']) {
+    this.stream().emit(msg)
+  }
+
+  // Get the event stream of the component.
+  // This is used internally by the library.
+  stream(): EventStream<CONTAINER['_Msg']> {
+    return this.component.stream()
+  }
+
+  // Get the widget of the component.
+  widget(): CONTAINER['_Root'] {
+    return this.component.widget()
+  }
 }
