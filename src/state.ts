@@ -1,4 +1,4 @@
-import { EventStream } from '../core'
+import { EventStream } from './core'
 
 export class Kelm<MSG> {
   private _stream: EventStream<MSG>

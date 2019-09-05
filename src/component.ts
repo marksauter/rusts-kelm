@@ -18,7 +18,7 @@ export class Component<WIDGET extends Widget> {
     return this._stream
   }
 
-  widget(): WIDGET['_Root'] {
+  root(): WIDGET['_Root'] {
     return this._widget
   }
 }

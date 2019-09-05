@@ -15,7 +15,10 @@ export abstract class Container<
   MSG = any,
   CHILD = any,
   CONTAINER extends WidgetContainer<CHILD> = WidgetContainer<CHILD>,
-  PARENT extends WidgetContainer<CONTAINER> = WidgetContainer<CONTAINER>
+  // Setting PARENT to any because setting to WidgetContainer<CONTAINER> doesn't
+  // satisfy all possible types (e.g. WidgetContainer<CONTAINER | CHILD>. Therefore,
+  // there's no way to have a sensible default for this type
+  PARENT = any
 > extends Widget<MODEL, MODELPARAM, MSG, CONTAINER, PARENT> {
   _Container!: CONTAINER
   _Child!: CHILD
@@ -30,7 +33,10 @@ export abstract class ContainerBase<
   MSG = any,
   CHILD = any,
   CONTAINER extends WidgetContainer<CHILD> = WidgetContainer<CHILD>,
-  PARENT extends WidgetContainer<CONTAINER> = WidgetContainer<CONTAINER>
+  // Setting PARENT to any because setting to WidgetContainer<CONTAINER> doesn't
+  // satisfy all possible types (e.g. WidgetContainer<CONTAINER | CHILD>. Therefore,
+  // there's no way to have a sensible default for this type
+  PARENT = any
 > extends WidgetBase<MODEL, MODELPARAM, MSG, CONTAINER, PARENT> {
   _Container!: CONTAINER
   _Child!: CHILD
@@ -66,14 +72,14 @@ export class ContainerComponent<
     MODELPARAM,
     MSG,
     ROOT extends CONTAINER['_Child'],
-    CHILDWIDGET extends Widget<MODEL, MODELPARAM, MSG, ROOT, WidgetContainer<ROOT>>
+    CHILDWIDGET extends Widget<MODEL, MODELPARAM, MSG, ROOT, CONTAINER['_Container']>
   >(
     ChildWidgetClass: new () => CHILDWIDGET,
     model_param: CHILDWIDGET['_ModelParam']
   ): Component<CHILDWIDGET> {
     let [component, child, child_kelm] = create_widget(ChildWidgetClass, model_param)
-    let widget = component.widget()
-    this.add(widget)
+    let root = component.root()
+    this.add(root)
     child.on_add(child_kelm, this.container)
     init_component(component.stream(), child, child_kelm)
     return component
@@ -90,8 +96,8 @@ export class ContainerComponent<
     return this.component.stream()
   }
 
-  // Get the widget of the component.
-  widget(): CONTAINER['_Root'] {
-    return this.component.widget()
+  // Get the root of the component.
+  root(): CONTAINER['_Root'] {
+    return this.component.root()
   }
 }
