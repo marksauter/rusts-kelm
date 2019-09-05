@@ -11,6 +11,7 @@ declare global {
     on<K extends keyof NodeEventMap>(evt_str: K, handler: NodeEventMap[K]): void
     off(evt_str: string, callback?: Function): void
     _off(evt_type: string, name?: string, callback?: Function): void
+    fire(evt_type: string, detail: any, bubbles?: boolean): void
   }
 
   interface Node {
@@ -25,6 +26,7 @@ declare global {
       ContainerClass: new () => CONTAINER,
       model_param: CONTAINER['_ModelParam']
     ): ContainerComponent<CONTAINER>
+    remove(): void
     replace_with_widget<CHILDWIDGET extends Widget>(
       this: CHILDWIDGET['_Parent'],
       ChildWidgetClass: new () => CHILDWIDGET,
@@ -129,6 +131,17 @@ EventTarget.prototype._off = function(
   }
 }
 
+EventTarget.prototype.fire = function(
+  this: EventTarget,
+  evt_type: string,
+  detail: any,
+  bubbles?: boolean
+): EventTarget {
+  let evt = new CustomEvent(evt_type, { bubbles, detail })
+  this.dispatchEvent(evt)
+  return this
+}
+
 function add(this: Node, node: Node): Node
 function add(this: Node, node: konva.Stage): konva.Stage
 function add(this: Node, node: any): any {
@@ -144,6 +157,14 @@ function add(this: Node, node: any): any {
 }
 
 Node.prototype.add = add
+
+Node.prototype.remove = function(this: Node): Node {
+  let parent = this.parentNode
+  if (parent) {
+    parent.removeChild(this)
+  }
+  return this
+}
 
 Node.prototype.add_container = function<CHILDCONTAINER extends Container>(
   this: WidgetContainer<CHILDCONTAINER['_Root']>,
@@ -165,8 +186,8 @@ Node.prototype.add_widget = function<CHILDWIDGET extends Widget>(
   model_param: CHILDWIDGET['_ModelParam']
 ): Component<CHILDWIDGET> {
   let [component, child, child_kelm] = create_widget(ChildWidgetClass, model_param)
-  let widget = component.widget()
-  this.add(widget)
+  let root = child.root()
+  this.add(root)
   child.on_add(child_kelm, this)
   init_component(component.stream(), child, child_kelm)
   return component
@@ -198,15 +219,15 @@ Node.prototype.replace_with_widget = function<CHILDWIDGET extends Widget>(
   model_param: CHILDWIDGET['_ModelParam']
 ): Component<CHILDWIDGET> {
   let [component, child, child_kelm] = create_widget(ChildWidgetClass, model_param)
-  let widget = component.widget()
-  if (!((widget as any) instanceof Node)) {
+  let root = child.root()
+  if (!((root as any) instanceof Node)) {
     throw new Error("ChildWidget Root is not assignable to type 'Node'")
   }
   let parent = this.parentNode
   if (!parent) {
     throw new Error('Node must have a parent Node')
   }
-  parent.insertBefore(widget, this)
+  parent.insertBefore(root, this)
   child.on_add(child_kelm, parent)
   init_component(component.stream(), child, child_kelm)
   parent.removeChild(this)
