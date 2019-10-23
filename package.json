@@ -1,6 +1,6 @@
 {
   "name": "kelm",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "",
   "keywords": [],
   "main": "dist/kelm.umd.js",
