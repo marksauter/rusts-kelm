@@ -82,7 +82,7 @@
     "@commitlint/cli": "^8.2.0",
     "@commitlint/config-conventional": "^8.2.0",
     "@types/jest": "^24.0.19",
-    "@types/node": "^12.7.12",
+    "@types/node": "^12.11.1",
     "colors": "^1.4.0",
     "commitizen": "^4.0.3",
     "coveralls": "^3.0.7",
@@ -115,7 +115,8 @@
     "typescript": "^3.6.4"
   },
   "dependencies": {
+    "@rusts/std": "^0.2.10",
     "flyd": "^0.2.8",
-    "konva": "^4.0.15"
+    "konva": "^4.0.16"
   }
 }

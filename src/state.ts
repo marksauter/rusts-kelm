@@ -1,158 +1,81 @@
-import { EventStream } from './core'
+import { EventStream } from "./core";
+import { abstract_panic } from "@rusts/std";
 
-export class Kelm<MSG> {
-  private _stream: EventStream<MSG>
+export class Kelm<Msg> {
+  private _stream: EventStream<Msg>;
 
-  constructor(stream: EventStream<MSG>) {
-    this._stream = stream
+  public constructor(stream: EventStream<Msg>) {
+    this._stream = stream;
   }
 
-  emit(msg: MSG) {
-    this._stream.emit(msg)
+  public emit(msg: Msg) {
+    this._stream.emit(msg);
   }
 
-  stream(): EventStream<MSG> {
-    return this._stream
+  public stream(): EventStream<Msg> {
+    return this._stream;
   }
 }
 
-export abstract class Update<MODEL = any, MODELPARAM = any, MSG = any> {
-  _Model!: MODEL
-  _ModelParam!: MODELPARAM
-  _Msg!: MSG
+export class Update<M = any, P = any, G = any> {
+  public Model!: M;
+  public Param!: P;
+  public Msg!: G;
+
+  public state: this["Model"];
+
+  protected constructor(kelm: Kelm<G>, param: P) {
+    this.state = this.model(kelm, param);
+  }
 
   // Create the initial model.
-  abstract model(kelm: Kelm<this['_Msg']>, param?: this['_ModelParam']): this['_Model']
+  public model(kelm: Kelm<this["Msg"]>, param: this["Param"]): this["Model"] {
+    abstract_panic("Update", "model");
+    // Unreachable
+    return (undefined as unknown) as this["Model"];
+  }
 
   // Connect the subscriptions.
   // Subscriptions are streams that are spawned wen the object is created.
-  subscriptions(kelm: Kelm<this['_Msg']>): void {}
+  public subscriptions(kelm: Kelm<this["Msg"]>): void {}
 
   // Method called when a msg is received from an event.
-  abstract update(kelm: Kelm<this['_Msg']>, msg: this['_Msg']): boolean
+  public update(kelm: Kelm<this["Msg"]>, msg: this["Msg"]) {
+    abstract_panic("Update", "update");
+  }
 }
 
-export abstract class UpdateNew<MODEL = any, MODELPARAM = any, MSG = any> extends Update<
-  MODEL,
-  MODELPARAM,
-  MSG
-> {
-  // Create a new component.
-  abstract init(kelm: Kelm<this['_Msg']>, model: this['_Model']): void
+export interface UpdateConstructor<U extends Update> {
+  new (kelm: Kelm<U["Msg"]>, param: U["Param"]): U;
 }
 
-export abstract class UpdateBase<MODEL = any, MODELPARAM = any, MSG = any> {
-  _Model!: MODEL
-  _ModelParam!: MODELPARAM
-  _Msg!: MSG
+export function execute<U extends Update>(
+  UpdateClass: UpdateConstructor<U>,
+  model_param: U["Param"]
+): EventStream<U["Msg"]> {
+  let stream: EventStream<U["Msg"]> = new EventStream();
+  let kelm = new Kelm(stream);
+  let update = new UpdateClass(kelm, model_param);
 
-  // Create the initial model.
-  abstract model<MSG extends this['_Msg']>(
-    kelm: Kelm<MSG>,
-    param?: this['_ModelParam']
-  ): this['_Model']
-
-  // Connect the subscriptions.
-  // Subscriptions are streams that are spawned wen the object is created.
-  subscriptions<UPDATE extends this['_Model'], MSG extends this['_Msg']>(
-    self: UPDATE,
-    kelm: Kelm<MSG>
-  ): void {}
-
-  // Method called when a msg is received from an event.
-  abstract update<UPDATE extends this['_Model'], MSG extends this['_Msg']>(
-    self: UPDATE,
-    kelm: Kelm<MSG>,
-    msg: this['_Msg']
-  ): boolean
+  init_component(stream, update, kelm);
+  return stream;
 }
 
-export abstract class UpdateBaseNew<MODEL = any, MODELPARAM = any, MSG = any> extends UpdateBase<
-  MODEL,
-  MODELPARAM,
-  MSG
-> {
-  // Create a new component.
-  abstract init<UPDATE extends this['_Model'], MSG extends this['_Msg']>(
-    self: UPDATE,
-    kelm: Kelm<this['_Msg']>,
-    model: this['_Model']
-  ): void
-}
-
-export function execute<UPDATE extends UpdateNew>(
-  UpdateClass: new () => UPDATE,
-  model_param: UPDATE['_ModelParam']
-): EventStream<UPDATE['_Msg']> {
-  let update = new UpdateClass()
-  let stream: EventStream<UPDATE['_Msg']> = new EventStream()
-
-  let kelm = new Kelm(stream)
-  let model = update.model(kelm, model_param)
-  update.init(kelm, model)
-
-  init_component(stream, update, kelm)
-  return stream
-}
-
-export function execute_base<UPDATE extends Update, UPDATEBASE extends UpdateBaseNew>(
-  update: UPDATE,
-  kelm: Kelm<UPDATE['_Msg']>,
-  UpdateBaseClass: new () => UPDATEBASE,
-  model_param: UPDATEBASE['_ModelParam']
+export function init_component<U extends Update>(
+  stream: EventStream<U["Msg"]>,
+  component: U,
+  kelm: Kelm<U["Msg"]>
 ) {
-  let base = new UpdateBaseClass()
-
-  let model = base.model(kelm, model_param)
-  base.init(update, kelm, model)
-
-  init_component_base(kelm.stream(), update, base, kelm)
-}
-
-export function init_component<COMPONENT extends Update>(
-  stream: EventStream<COMPONENT['_Msg']>,
-  component: COMPONENT,
-  kelm: Kelm<COMPONENT['_Msg']>
-) {
-  component.subscriptions(kelm)
-  let callback = stream.get_callback()
+  component.subscriptions(kelm);
   stream.set_callback(event => {
-    let ret = update_component(component, kelm, event)
-    if (!ret && callback) {
-      return callback(event)
-    }
-  })
+    update_component(component, kelm, event);
+  });
 }
 
-export function init_component_base<COMPONENT extends Update, COMPONENTBASE extends UpdateBase>(
-  stream: EventStream<COMPONENT['_Msg']>,
-  component: COMPONENT,
-  base: COMPONENTBASE,
-  kelm: Kelm<COMPONENT['_Msg']>
+export function update_component<U extends Update>(
+  component: U,
+  kelm: Kelm<U["Msg"]>,
+  event: U["Msg"]
 ) {
-  base.subscriptions(component, kelm)
-  let callback = stream.get_callback()
-  stream.set_callback(event => {
-    let ret = update_component_base(component, base, kelm, event)
-    if (!ret && callback) {
-      return callback(event)
-    }
-  })
-}
-
-export function update_component<COMPONENT extends Update>(
-  component: COMPONENT,
-  kelm: Kelm<COMPONENT['_Msg']>,
-  event: COMPONENT['_Msg']
-): boolean {
-  return component.update(kelm, event)
-}
-
-export function update_component_base<COMPONENT extends Update, COMPONENTBASE extends UpdateBase>(
-  component: COMPONENT,
-  base: COMPONENTBASE,
-  kelm: Kelm<COMPONENT['_Msg']>,
-  event: COMPONENT['_Msg']
-): boolean {
-  return base.update(component, kelm, event)
+  component.update(kelm, event);
 }
