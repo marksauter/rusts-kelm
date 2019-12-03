@@ -1,6 +1,6 @@
 {
   "name": "@rusts/kelm",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "",
   "keywords": [],
   "main": "dist/kelm.umd.js",
