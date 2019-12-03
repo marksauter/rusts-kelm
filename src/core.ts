@@ -81,14 +81,13 @@ export class EventStream<Msg> {
 
   // Remove an observer from the event stream.
   public ignore(msg_str: string, callback?: this["Callback"]) {
-    let messages = (msg_str as string).split(" "),
-      len = messages.length,
-      n,
-      o,
-      message,
-      parts,
-      base_msg,
-      name;
+    let messages = (msg_str as string).split(" ");
+    let len = messages.length;
+    let o;
+    let message;
+    let parts;
+    let base_msg;
+    let name;
 
     if (msg_str === "") {
       // remove all messages
@@ -115,10 +114,10 @@ export class EventStream<Msg> {
   }
 
   private _ignore(msg_type: string, name?: string, callback?: this["Callback"]) {
-    let observers = this.observers[msg_type],
-      i,
-      msg_name,
-      handler;
+    let observers = this.observers[msg_type];
+    let i;
+    let msg_name;
+    let handler;
 
     for (i = 0; i < observers.length; i++) {
       msg_name = observers[i].name;

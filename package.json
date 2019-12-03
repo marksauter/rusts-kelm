@@ -115,7 +115,7 @@
     "typescript": "^3.6.4"
   },
   "dependencies": {
-    "@rusts/std": "^0.2.10",
+    "@rusts/std": "^0.2.11",
     "flyd": "^0.2.8",
     "konva": "^4.0.16"
   }

@@ -1,6 +1,3 @@
-import konva from "konva";
-import { Component } from "./component";
-import { Container, ContainerComponent, ContainerConstructor, WidgetContainer } from "./container";
 import { create_widget } from "./helpers";
 import { init_component } from "./state";
 import { NodeEventMap, Widget, WidgetConstructor } from "./widget";
@@ -15,28 +12,16 @@ declare global {
   }
 
   interface Node {
-    add(node: Node | konva.Stage): any;
-    add_widget<W extends Widget>(
-      this: W["Parent"],
+    add(child: Node): void;
+    add_widget<Model, Param, Msg, W extends Widget<Model, Param, Msg, Node>>(
       WidgetClass: WidgetConstructor<W>,
       model_param: W["Param"]
-    ): Component<W>;
-    add_container<R extends Container>(
-      this: WidgetContainer<R["Root"]>,
-      ContainerClass: ContainerConstructor<R>,
-      model_param: R["Param"]
-    ): ContainerComponent<R>;
+    ): W["IntoComp"];
     remove(): void;
-    replace_with_widget<W extends Widget>(
-      this: W["Parent"],
+    replace_with_widget<Model, Param, Msg, W extends Widget<Model, Param, Msg, Node>>(
       WidgetClass: WidgetConstructor<W>,
       model_param: W["Param"]
-    ): Component<W>;
-    replace_with_container<R extends Container>(
-      this: WidgetContainer<R["Root"]>,
-      ContainerClass: ContainerConstructor<R>,
-      model_param: R["Param"]
-    ): ContainerComponent<R>;
+    ): W["IntoComp"];
   }
 }
 
@@ -46,17 +31,16 @@ EventTarget.prototype.on = function<K extends keyof NodeEventMap>(
   evt_str: K,
   handler: NodeEventMap[K]
 ) {
-  let events = (evt_str as string).split(" "),
-    len = events.length,
-    n,
-    event,
-    parts,
-    base_event,
-    name;
+  let events = (evt_str as string).split(" ");
+  let len = events.length;
+  let event;
+  let parts;
+  let base_event;
+  let name;
 
   // loop through types and attach event listeners to each one. eg. 'click mouseover.namespace
   // mouseout' will create three event bindings
-  for (n = 0; n < len; n++) {
+  for (let n = 0; n < len; n++) {
     event = events[n];
     parts = event.split(".");
     base_event = parts[0];
@@ -72,14 +56,13 @@ EventTarget.prototype.on = function<K extends keyof NodeEventMap>(
   }
 };
 EventTarget.prototype.off = function(this: EventTarget, evt_str: string, callback?: Function) {
-  let events = (evt_str as string).split(" "),
-    len = events.length,
-    n,
-    t,
-    event,
-    parts,
-    base_event,
-    name;
+  let events = (evt_str as string).split(" ");
+  let len = events.length;
+  let t;
+  let event;
+  let parts;
+  let base_event;
+  let name;
 
   if (!evt_str) {
     // remove all events
@@ -111,12 +94,11 @@ EventTarget.prototype._off = function(
   name?: string,
   callback?: Function
 ) {
-  let evt_listeners = this._event_listeners[evt_type],
-    i,
-    evt_name,
-    handler;
+  let evt_listeners = this._event_listeners[evt_type];
+  let evt_name;
+  let handler;
 
-  for (i = 0; i < evt_listeners.length; i++) {
+  for (let i = 0; i < evt_listeners.length; i++) {
     evt_name = evt_listeners[i].name;
     handler = evt_listeners[i].handler;
     if ((!name || evt_name === name) && (!callback || callback === handler)) {
@@ -142,23 +124,11 @@ EventTarget.prototype.fire = function(
   return this;
 };
 
-function add(this: Node, node: Node): Node;
-function add(this: Node, node: konva.Stage): konva.Stage;
-function add(this: Node, node: any): any {
-  if (node instanceof Node) {
-    return this.appendChild(node);
-  } else {
-    if (this instanceof HTMLDivElement) {
-      return node.container(this);
-    } else {
-      throw new Error("Konva.Stage can only be added to a 'div' element");
-    }
-  }
-}
+Node.prototype.add = function(node) {
+  return this.appendChild(node);
+};
 
-Node.prototype.add = add;
-
-Node.prototype.remove = function(this: Node): Node {
+Node.prototype.remove = function() {
   let parent = this.parentNode;
   if (parent) {
     parent.removeChild(this);
@@ -166,25 +136,7 @@ Node.prototype.remove = function(this: Node): Node {
   return this;
 };
 
-Node.prototype.add_container = function<R extends Container>(
-  this: WidgetContainer<R["Root"]>,
-  ContainerClass: ContainerConstructor<R>,
-  model_param: R["Param"]
-): ContainerComponent<R> {
-  let [component, child, child_kelm] = create_widget(ContainerClass, model_param);
-  let container = child.container();
-  let root = child.root();
-  this.add(root);
-  child.on_add(child_kelm, this);
-  init_component(component.stream(), child, child_kelm);
-  return new ContainerComponent<R>(component, container);
-};
-
-Node.prototype.add_widget = function<W extends Widget>(
-  this: W["Parent"],
-  WidgetClass: WidgetConstructor<W>,
-  model_param: W["Param"]
-): Component<W> {
+Node.prototype.add_widget = function(WidgetClass, model_param) {
   let [component, child, child_kelm] = create_widget(WidgetClass, model_param);
   let root = child.root();
   this.add(root);
@@ -193,31 +145,7 @@ Node.prototype.add_widget = function<W extends Widget>(
   return component;
 };
 
-Node.prototype.replace_with_container = function<R extends Container>(
-  ContainerClass: ContainerConstructor<R>,
-  model_param: R["Param"]
-): ContainerComponent<R> {
-  let [component, child, child_kelm] = create_widget(ContainerClass, model_param);
-  let container = child.container();
-  let root = child.root();
-  if (!(root instanceof Node)) {
-    throw new Error("ChildContainer Root is not assignable to type 'Node'");
-  }
-  let parent = this.parentNode;
-  if (!parent) {
-    throw new Error("Node must have a parent Node");
-  }
-  parent.insertBefore(root, this);
-  child.on_add(child_kelm, parent);
-  init_component(component.stream(), child, child_kelm);
-  parent.removeChild(this);
-  return new ContainerComponent<R>(component, container);
-};
-
-Node.prototype.replace_with_widget = function<W extends Widget>(
-  WidgetClass: WidgetConstructor<W>,
-  model_param: W["Param"]
-): Component<W> {
+Node.prototype.replace_with_widget = function(WidgetClass, model_param) {
   let [component, child, child_kelm] = create_widget(WidgetClass, model_param);
   let root = child.root();
   if (!((root as any) instanceof Node)) {

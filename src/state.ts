@@ -1,5 +1,5 @@
 import { EventStream } from "./core";
-import { abstract_panic } from "@rusts/std";
+import { Self, abstract_panic } from "@rusts/std";
 
 export class Kelm<Msg> {
   private _stream: EventStream<Msg>;
@@ -17,7 +17,7 @@ export class Kelm<Msg> {
   }
 }
 
-export class Update<M = any, P = any, G = any> {
+export class Update<M = any, P = any, G = any> extends Self {
   public Model!: M;
   public Param!: P;
   public Msg!: G;
@@ -25,11 +25,12 @@ export class Update<M = any, P = any, G = any> {
   public state: this["Model"];
 
   protected constructor(kelm: Kelm<G>, param: P) {
+    super();
     this.state = this.model(kelm, param);
   }
 
   // Create the initial model.
-  public model(kelm: Kelm<this["Msg"]>, param: this["Param"]): this["Model"] {
+  public model(_kelm: Kelm<this["Msg"]>, _param: this["Param"]): this["Model"] {
     abstract_panic("Update", "model");
     // Unreachable
     return (undefined as unknown) as this["Model"];
@@ -37,10 +38,10 @@ export class Update<M = any, P = any, G = any> {
 
   // Connect the subscriptions.
   // Subscriptions are streams that are spawned wen the object is created.
-  public subscriptions(kelm: Kelm<this["Msg"]>): void {}
+  public subscriptions(_kelm: Kelm<this["Msg"]>): void {}
 
   // Method called when a msg is received from an event.
-  public update(kelm: Kelm<this["Msg"]>, msg: this["Msg"]) {
+  public update(_kelm: Kelm<this["Msg"]>, _msg: this["Msg"]) {
     abstract_panic("Update", "update");
   }
 }
